@@ -164,7 +164,7 @@ fun SettingsScreen(container: WenYouApp.AppContainer, nav: NavHostController, up
 
             if (category == "system") item { io.wenyou.textquest.ui.common.WhatsNewCard() }
 
-            if (category == "system") item {
+            if (category == "system" && !BuildConfig.PLAY_STORE) item {
                 AppUpdateCard(updateState, { updateVm.check() }, updateVm::download,
                     onOpenDownloads = { openUpdatePage(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS)) },
                     onOpenRelease = { openUpdatePage(Intent(Intent.ACTION_VIEW,
@@ -203,7 +203,7 @@ fun SettingsScreen(container: WenYouApp.AppContainer, nav: NavHostController, up
 
             }
 
-            if (category == "content") {
+            if (category == "content" && !BuildConfig.PLAY_STORE) {
                 item { SectionHeader("成人内容") }
                 item {
                     TonalCard {

@@ -39,7 +39,7 @@ class SettingsStore(context: Context) {
         themeMode = themeOf(prefs.getString(KEY_THEME, ThemeMode.SYSTEM.name)),
         dynamicColor = prefs.getBoolean(KEY_DYNAMIC, true),
         defaultProviderId = prefs.getString(KEY_PROVIDER, null),
-        adultContent = prefs.getBoolean(KEY_ADULT, true)
+        adultContent = !io.wenyou.textquest.BuildConfig.PLAY_STORE && prefs.getBoolean(KEY_ADULT, true)
     )
 
     /** 旧版本可能写入过未知枚举值（主题改名/清理残留），损坏时回退跟随系统。 */

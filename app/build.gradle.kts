@@ -21,6 +21,10 @@ if (workspaceVersionFile.isFile) {
         }
     }
 }
+// Play signing key and report address; play.properties stays out of the repository.
+val playProps = Properties().apply {
+    rootProject.file("play.properties").takeIf { it.isFile }?.inputStream()?.use { load(it) }
+}
 val appVersionMajor: String = versionProps.getProperty("versionMajor", "1")
 val appVersionMinor: String = versionProps.getProperty("versionMinor", "1")
 val appVersionPatch: String = versionProps.getProperty("versionPatch", "0")
@@ -43,6 +47,8 @@ android {
         buildConfigField("String", "SHARE_SCHEME", "\"xingxu\"")
         manifestPlaceholders["shareScheme"] = "xingxu"
         buildConfigField("String", "APP_FILE_PREFIX", "\"XingXu\"")
+        buildConfigField("boolean", "PLAY_STORE", "false")
+        buildConfigField("String", "REPORT_EMAIL", "\"\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -56,16 +62,32 @@ android {
             buildConfigField("String", "UPDATE_REPOSITORY", "\"wangmikuwang/XingXu-Android\"")
             dimension = "content"
             applicationIdSuffix = ".beta"
-
+            // Signed with the key already used by published APKs.
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        // Google Play build: same package and content as beta, without self-update or 18+ content.
+        create("play") {
+            buildConfigField("String", "UPDATE_REPOSITORY", "\"\"")
+            buildConfigField("boolean", "PLAY_STORE", "true")
+            buildConfigField("String", "REPORT_EMAIL", "\"${playProps.getProperty("reportEmail", "")}\"")
+            dimension = "content"
+            applicationIdSuffix = ".beta"
+            if (playProps.getProperty("storeFile") != null) signingConfig = signingConfigs.create("play") {
+                storeFile = rootProject.file(playProps.getProperty("storeFile"))
+                storePassword = playProps.getProperty("storePassword")
+                keyAlias = playProps.getProperty("keyAlias")
+                keyPassword = playProps.getProperty("keyPassword")
+            }
         }
     }
+    sourceSets["play"].res.srcDir("src/beta/res")
+    sourceSets["play"].assets.srcDir("src/beta/assets")
 
     buildTypes {
         release {
-            // Distributed builds: R8 + resource shrinking, signed with the key already used by published APKs.
+            // Distributed builds: R8 + resource shrinking; each flavor sets its signing key.
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -95,6 +117,9 @@ kotlin {
 
 // APK 产物去掉 debug 字样，直接可用于分发。
 androidComponents {
+    onVariants(selector().withFlavor("content" to "play")) { variant ->
+        variant.androidResources.ignoreAssetsPatterns.add("!wenyou-adult*")
+    }
     onVariants { variant ->
         variant.outputs.forEach { output ->
             (output as? com.android.build.api.variant.impl.VariantOutputImpl)?.outputFileName?.set("XingXu-v$appVersionName.apk")
